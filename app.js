@@ -5,7 +5,7 @@
 var express = require('express');
 var path = require('path');
 var http = require('http');
-var redis = require('redis');
+var redis = require('./modules/redis');
 var app = express();
 
 // all environments
@@ -22,7 +22,7 @@ if ('development' == app.get('env')) {
 }
 
 //	扔一个漂流瓶
-//	post ?owner=xxx&type=xxx&content=xxx[&time=xxx]
+//	post ?owner=xxx&type=xxx&content=xxx[&time=xxx]modules
 app.post('/',function(req,res){
 	if(!req.body.owner || !req.body.type || !req.body.content){
 		if(req.body.type && (['male','female'].indexOf(req.body.type) == -1)){
