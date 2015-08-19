@@ -4,7 +4,8 @@
  */
 
 var redis = require('redis'),
-    client = redis.createClient();
+    client = redis.createClient(),
+    client1 = redis.createClient();
 //	redis.createClient(port,host,opt)
 
 /**
@@ -15,7 +16,8 @@ var redis = require('redis'),
  */
 exports.throw = function (bottle, callback) {
     bottle.time = bottle.time || Date.now();
-    var bottleId = Math.random().toString(16),
+    var curClient = null,
+        bottleId = Math.random().toString(16),
     //	为每个瓶子随机生成一个id
 
         type = {
@@ -24,8 +26,14 @@ exports.throw = function (bottle, callback) {
         };
     //	根据不同类型将不同漂流瓶保存到不同的数据库
 
-    client.SELECT(type[bottle.type], function () {
-        client.HMSET(bottleId, bottle, function (err, res) {
+    if(type[bottle.type] == 0){
+        curClient = client;
+    }else{
+        curClient = client1;
+    }
+
+    curClient.SELECT(type[bottle.type], function () {
+        curClient.HMSET(bottleId, bottle, function (err, res) {
             //	以hash类型保存漂流瓶对象
 
             if (err) {
@@ -42,10 +50,11 @@ exports.throw = function (bottle, callback) {
             });
             //	保存成功
 
-            client.EXPIRE(bottleId, 86400);
+            curClient.EXPIRE(bottleId, 86400);
             //	设置过期时间,每个漂流瓶的生成时间为1天
         });
     });
+    curClient.close();
 };
 
 /**

@@ -4,7 +4,7 @@
 
 var request = require('request');
 
-for(var i = 0;i <= 5;i ++){
+for(var i = 1;i <= 5;i ++){
 	(function(i){
 		request.post({
 			'url':'http://127.0.0.1:3000/',
@@ -16,6 +16,7 @@ for(var i = 0;i <= 5;i ++){
 		});
 	})(i);
 }
+//	循环5条male数据
 
 for(var j = 6;j <= 10;j ++){
 	(function(j){
@@ -29,3 +30,4 @@ for(var j = 6;j <= 10;j ++){
 		});
 	})(j);
 }
+//	循环5条female数据
