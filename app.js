@@ -41,7 +41,7 @@ app.post('/',function(req,res){
 	});
 });
 
-//	扔一个漂流瓶
+//	捡到一个漂流瓶
 //	get ?user=xxx[&type=xxx]
 app.get('/',function(req,res){
 	if(!req.query.user){

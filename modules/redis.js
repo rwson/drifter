@@ -32,6 +32,8 @@ exports.throw = function (bottle, callback) {
         curClient = client1;
     }
 
+    console.log('现在应该选择' + type[bottle.type] + '号数据库进行插入');
+
     curClient.SELECT(type[bottle.type], function () {
         curClient.HMSET(bottleId, bottle, function (err, res) {
             //	以hash类型保存漂流瓶对象
@@ -54,7 +56,6 @@ exports.throw = function (bottle, callback) {
             //	设置过期时间,每个漂流瓶的生成时间为1天
         });
     });
-    curClient.close();
 };
 
 /**
