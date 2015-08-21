@@ -6,6 +6,7 @@ var express = require('express');
 var path = require('path');
 var http = require('http');
 var redis = require('./modules/redis');
+var mongodb = require('./modules/mongodb');
 var app = express();
 
 // all environments
@@ -57,10 +58,45 @@ app.get('/',function(req,res){
 		});
 	}
 	redis.pick(req.query,function(result){
+		if(result.code === 1){
+			mongodb.save(req.query.user,req.result.msg,function(err){
+				if (err){
+					return res.json({
+						'code':0,
+						'msg':'获取漂流瓶失败,请重试!'
+					});
+					return res.json(result);
+				}
+			});
+			//	存入mongodb数据库
+		}
 		res.json(result);
 	});
 });
 
-http.createServer(app).listen(app.get('port'), function(){
-  console.log('startup successful!');
+//	扔回海里
+//	post owner=xxx&type=xxx&content=xxx&time=xxx
+app.post('/back',function(req,res){
+	redis.throwBack(req.body,function(result){
+		res.json(result);
+	});
 });
+
+//	获取一个用户所有的漂流瓶数据
+//	get /user/rwson
+app.get('/user/:user',function(req,res){
+	mongodb.getAll(req.params.user,function(result){
+		res.json(result);
+	});
+});
+
+//	打开特定的漂流瓶
+//	get /bottle/1234567qwe
+app.get('/bottle/:_id',function(req,res){
+	mongodb.getOne(req.params._id,function(result){
+		res.json(result);
+	});
+});
+
+app.listen(app.get('port'));
+console.log('start up success!');

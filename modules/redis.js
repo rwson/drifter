@@ -5,7 +5,9 @@
 
 var redis = require('redis'),
     client = redis.createClient(),
-    client1 = redis.createClient();
+    client1 = redis.createClient(),
+    client2 = redis.createClient(),
+    client3 = redis.createClient();
 //	redis.createClient(port,host,opt)
 
 /**
@@ -17,14 +19,8 @@ var redis = require('redis'),
 exports.throw = function (bottle, callback) {
     bottle.time = bottle.time || Date.now();
     var curClient = null,
-        bottleId = Math.random().toString(16),
+        bottleId = Math.random().toString(16);
     //	为每个瓶子随机生成一个id
-
-        type = {
-            'male': 0,
-            'female': 1
-        };
-    //	根据不同类型将不同漂流瓶保存到不同的数据库
 
     if(type[bottle.type] == 0){
         curClient = client;
@@ -32,28 +28,54 @@ exports.throw = function (bottle, callback) {
         curClient = client1;
     }
 
-    console.log('现在应该选择' + type[bottle.type] + '号数据库进行插入');
+    client2.SELECT(2,function(){
+        //  进入2号数据库检查用户是否超过扔瓶子次数
 
-    curClient.SELECT(type[bottle.type], function () {
-        curClient.HMSET(bottleId, bottle, function (err, res) {
-            //	以hash类型保存漂流瓶对象
-
-            if (err) {
+        client2.GET(bottle.owner,function(err,res){
+            if(res >= 10){
                 return callback({
-                    'code': 0,
-                    'msg': '过会再试吧!'
+                    'code':0,
+                    'msg':'今天扔瓶子的机会用完啦!'
                 });
             }
-            //	保存出错
+            //  如果超过10次,给出错误提示
 
-            callback({
-                'code': 1,
-                'msg': res
+            client2.INCR(bottle.owner,function(){
+                //  次数加1
+
+                client2.TTL(bottle.owner,function(err,ttl){
+                    if(ttl === -1){
+                        client2.EXPIRE(bottle.owner,86400);
+                    }
+                    //  检查是否当天第一次扔瓶子
+                    //  如果是,设置该用户扔瓶子次数生存期为1天
+                    //  如果不是,生存期不变
+                });
             });
-            //	保存成功
 
-            curClient.EXPIRE(bottleId, 86400);
-            //	设置过期时间,每个漂流瓶的生成时间为1天
+            curClient.SELECT(type[bottle.type], function () {
+                curClient.HMSET(bottleId, bottle, function (err, res) {
+                    //  以hash类型保存漂流瓶对象
+
+                    if (err) {
+                        return callback({
+                            'code': 0,
+                            'msg': '过会再试吧!'
+                        });
+                    }
+                    //  保存出错
+
+                    callback({
+                        'code': 1,
+                        'msg': res
+                    });
+                    //  保存成功
+
+                    curClient.EXPIRE(bottleId, 86400);
+                    //  设置过期时间,每个漂流瓶的生成时间为1天
+                });
+            });
+
         });
     });
 };
@@ -65,6 +87,12 @@ exports.throw = function (bottle, callback) {
  * @return {[type]}            [description]
  */
 exports.pick = function (info, callback) {
+    if(Math.random() < 0.2){
+        return callback({
+            'code':0,
+            'msg':'海星'
+        });
+    }
     var type = {
         'all': Math.round(Math.random()),
         'male': 0,
@@ -72,38 +100,107 @@ exports.pick = function (info, callback) {
     };
     info.type = info.type || 'all';
 
-    client.SELECT(type[info.type], function (err, info) {
-        //	根据瓶子的不同类型从不同的库中取
+    client3.SELECT(3,function(){
+        //  进入3号数据库,检查用户捡瓶子是否超过次数
 
-        client.RANDOMKEY(function (err, bottleId) {
-            //	随机返回一个漂流瓶id
-
-            if (!bottleId) {
+        client3.GET(info.user,function(err,result){
+            if(result >= 10){
                 return callback({
-                    'code': 0,
-                    'msg': '大海空空如也!'
+                    'code':0,
+                    'msg':'今天捡瓶子的机会用完啦!'
                 });
             }
-            //	没有取到漂流瓶
+            //  捡瓶子机会用完了
 
-            client.HGETALL(bottleId, function (err, bottle) {
-                //	根据返回的id取漂流瓶对象
+            client3.INCR(info.user,function(){
+                //  捡瓶子次数加1
 
-                if (err) {
-                    return callback({
-                        'code': 0,
-                        'msg': '瓶子破损了!'
-                    });
-                }
-                callback({
-                    'code':1,
-                    'msg':bottle
+                client3.TLL(info.user,function(err,tll){
+                    if(ttl === -1){
+                        client2.EXPIRE(bottle.owner,86400);
+                    }
+                    //  检查是否当天第一次捡瓶子
+                    //  如果是,设置该用户捡瓶子次数生存期为1天
+                    //  如果不是,生存期不变
+
                 });
-                //  返回漂流瓶的信息
-
-                client.DEL(bottleId);
-                //  从redis中删除该漂流瓶
             });
+            client.SELECT(type[info.type], function (err, info) {
+                //  根据瓶子的不同类型从不同的库中取
+
+                client.RANDOMKEY(function (err, bottleId) {
+                    //  随机返回一个漂流瓶id
+
+                    if (!bottleId) {
+                        return callback({
+                            'code': 0,
+                            'msg': '海星'
+                        });
+                    }
+                    //  没有取到漂流瓶
+
+                    client.HGETALL(bottleId, function (err, bottle) {
+                        //  根据返回的id取漂流瓶对象
+
+                        if (err) {
+                            return callback({
+                                'code': 0,
+                                'msg': '瓶子破损了!'
+                            });
+                        }
+                        callback({
+                            'code':1,
+                            'msg':bottle
+                        });
+                        //  返回漂流瓶的信息
+
+                        client.DEL(bottleId);
+                        //  从redis中删除该漂流瓶
+                    });
+                });
+            });
+        });
+    });
+};
+
+/**
+ * 扔回
+ * @param  {[type]}   bottle   [description]
+ * @param  {Function} callback [description]
+ * @return {[type]}            [description]
+ */
+exports.throwBack = function(bottle,callback){
+    var curClient = null,
+    bottleId = Math.random().toString(16);
+    //  为瓶子随机生成一个id
+
+    if(type[bottle.type] == 0){
+        curClient = client;
+    }else{
+        curClient = client1;
+    }
+
+    curClient.SELECT(type[bottle.type], function () {
+        curClient.HMSET(bottleId, bottle, function (err, res) {
+            //  以hash类型保存漂流瓶对象
+
+            if (err) {
+                return callback({
+                    'code': 0,
+                    'msg': '过会再试吧!'
+                });
+            }
+            //  保存出错
+
+            callback({
+                'code': 1,
+                'msg': res
+            });
+            //  保存成功
+
+            curClient.PEXPIRE(bottleId, bottle.time - 86400000 - Date.now());
+            //  设置过期时间,每个漂流瓶的生成时间为1天
+            //  PEXPIRE和EXPIRE都是设置生存时间,但是前者以毫秒为单位,后者以秒为单位
         });
     });
 };
