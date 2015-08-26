@@ -98,5 +98,27 @@ app.get('/bottle/:_id',function(req,res){
 	});
 });
 
+//	女神,我们做朋友吧
+//	post user=xxx&content=xxx[&time=xxx]
+app.post('/replay/:_id',function(req,res){
+	if(!req.body.user || !req.body.content){
+		return res.json({
+			'code':0,
+			'msg':'信息不完整'
+		});
+		mongodb.replay(req.params._ud,req.body,function(result){
+			res.json(result);
+		});
+	}
+});
+
+//	删除指定id的漂流瓶
+//	get /delete/1234shjdashj87238
+app.get('/delete/:_id',function(req,res){
+	mongodb.delete(function(result){
+		res.json(result);
+	});
+});
+
 app.listen(app.get('port'));
 console.log('start up success!');
